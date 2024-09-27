@@ -1,0 +1,14 @@
+<body style="background-color: aliceblue;display: flex;width: 100svw; height: 100svh;align-items: center; justify-content: center;margin: 0;">
+	<div style="position: absolute;top:5px;left:5px" id="infos"></div>
+	<div id="controls" style="display: flex;flex-direction: column;margin: 10px;">
+		<button
+		onclick="editeur.add_element_mode()">Text</button>
+		<button disabled>Image</button>
+	</div>
+	<div id="screen"></div>
+
+	<script src="main.js"></script>
+	<script>
+		let editeur = new Screen("screen")
+	</script>
+</body>
