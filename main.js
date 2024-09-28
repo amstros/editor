@@ -1,5 +1,5 @@
 
-function getMousePos(canvas, evt) {
+function get_mouse_pos(canvas, evt) {
     var rect = canvas.getBoundingClientRect(), // abs. size of element
         scaleX = canvas.width / rect.width,    // relationship bitmap vs. element for x
         scaleY = canvas.height / rect.height;  // relationship bitmap vs. element for y
@@ -10,6 +10,17 @@ function getMousePos(canvas, evt) {
     }
 }
 
+function generate_id(length) {
+    let result = '';
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const charactersLength = characters.length;
+    let counter = 0;
+    while (counter < length) {
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
+      counter += 1;
+    }
+    return result;
+}
 
 class Screen {
     constructor(id) {
@@ -40,9 +51,9 @@ class Screen {
     }
 
     draw_zone(start, stop, color) {
-        
+
         this.draw_content()
-        
+
         let ctx = this.canvas.getContext('2d')
         ctx.beginPath()
         ctx.rect(start[0], start[1], stop[0] - start[0], stop[1] - start[1])
@@ -70,7 +81,7 @@ class Screen {
         var start, stop = []
 
         this.canvas.addEventListener("mousemove", (event) => {
-            let mouse = getMousePos(this.canvas, event)
+            let mouse = get_mouse_pos(this.canvas, event)
             stop = [mouse.x, mouse.y]
 
             if (clicked)
@@ -80,14 +91,14 @@ class Screen {
 
         this.canvas.addEventListener('mousedown', (event) => {
             clicked = true
-            let mouse = getMousePos(this.canvas, event)
+            let mouse = get_mouse_pos(this.canvas, event)
             start = [mouse.x, mouse.y]
 
         })
 
         this.canvas.addEventListener('mouseup', (event) => {
             clicked = false
-            let element = new Element(start[0], start[1], stop[0], stop[1])
+            let element = new Element(generate_id(10),start[0], start[1], stop[0], stop[1])
             this.content.push(element)
             this.selection_mode()
         })
@@ -97,48 +108,66 @@ class Screen {
         this.reset_canvas()
         this.draw_content()
 
+        let clicked = false
         let hovered = undefined
         let selected = undefined
+
         this.canvas.addEventListener("mousemove", (event) => {
-            let mouse = getMousePos(this.canvas, event)
+            let mouse = get_mouse_pos(this.canvas, event)
             this.draw_content()
 
+            let found = undefined
+            document.getElementById('infos').innerHTML = JSON.stringify(selected)
             this.content.forEach(element => {
-                if (element.is_at(mouse.x, mouse.y)) {
-                    hovered = element
-                    element.draw_hovered(this.canvas)
+                if (found == undefined) {
+                    if (element.is_at(mouse.x, mouse.y) && (hovered == element || hovered == undefined)) {
+                        found = element
+                        hovered = element
+                        element.draw_hovered(this.canvas)
+                    }
                 }
-
-                if (selected && element == selected) {
+                if (selected) {
                     selected.draw_selected(this.canvas)
                 }
 
+                if(selected && clicked){
+                    document.getElementById('infos').innerHTML += "<br/>dragging"
+                    
+
+                }
             })
+
+            if (!found) {
+                hovered = undefined
+            }
+
         })
 
         this.canvas.addEventListener("mousedown", (event) => {
             this.draw_content()
+            clicked = true
+            if(hovered != undefined){
+                selected = hovered
+                selected.draw_selected(this.canvas)
 
-            let mouse = getMousePos(this.canvas, event)
-
-            let hit = false
-            this.content.forEach(element => {
-                if (element.is_at(mouse.x, mouse.y)) {
-                    hit = true
-                    selected = element
-                    element.draw_selected(this.canvas)
-                } 
-            })
-
-            if (!hit)
+            } else {
                 selected = undefined
+            }
+
+
+
+        })
+
+        this.canvas.addEventListener("mouseup", (event) => {
+            clicked = false
         })
     }
 }
 
 
 class Element {
-    constructor(x1, y1, x2, y2) {
+    constructor(id,x1, y1, x2, y2) {
+        this.id = id
         this.x1 = x1
         this.x2 = x2
         this.y1 = y1
