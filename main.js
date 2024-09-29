@@ -16,8 +16,8 @@ function generate_id(length) {
     const charactersLength = characters.length;
     let counter = 0;
     while (counter < length) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
-      counter += 1;
+        result += characters.charAt(Math.floor(Math.random() * charactersLength));
+        counter += 1;
     }
     return result;
 }
@@ -98,7 +98,7 @@ class Screen {
 
         this.canvas.addEventListener('mouseup', (event) => {
             clicked = false
-            let element = new Element(generate_id(10),start[0], start[1], stop[0], stop[1])
+            let element = new Element(generate_id(10), start[0], start[1], stop[0], stop[1])
             this.content.push(element)
             this.selection_mode()
         })
@@ -108,7 +108,7 @@ class Screen {
         this.reset_canvas()
         this.draw_content()
 
-        let clicked = false
+        let clicked = undefined
         let hovered = undefined
         let selected = undefined
 
@@ -117,7 +117,6 @@ class Screen {
             this.draw_content()
 
             let found = undefined
-            document.getElementById('infos').innerHTML = JSON.stringify(selected)
             this.content.forEach(element => {
                 if (found == undefined) {
                     if (element.is_at(mouse.x, mouse.y) && (hovered == element || hovered == undefined)) {
@@ -126,14 +125,18 @@ class Screen {
                         element.draw_hovered(this.canvas)
                     }
                 }
-                if (selected) {
-                    selected.draw_selected(this.canvas)
+
+                if (selected && clicked) {
+                    document.getElementById('infos').innerHTML = (mouse.x - clicked.x) + " ; " + (mouse.y - clicked.y)
+                    selected.x1 += mouse.x - clicked.x
+                    selected.x2 += mouse.x - clicked.x
+                    selected.y1 += mouse.y - clicked.y
+                    selected.y2 += mouse.y - clicked.y
+                    clicked = mouse
                 }
 
-                if(selected && clicked){
-                    document.getElementById('infos').innerHTML += "<br/>dragging"
-                    
-
+                if (selected) {
+                    selected.draw_selected(this.canvas)
                 }
             })
 
@@ -145,8 +148,8 @@ class Screen {
 
         this.canvas.addEventListener("mousedown", (event) => {
             this.draw_content()
-            clicked = true
-            if(hovered != undefined){
+            clicked = get_mouse_pos(this.canvas, event)
+            if (hovered != undefined) {
                 selected = hovered
                 selected.draw_selected(this.canvas)
 
@@ -159,14 +162,14 @@ class Screen {
         })
 
         this.canvas.addEventListener("mouseup", (event) => {
-            clicked = false
+            clicked = undefined
         })
     }
 }
 
 
 class Element {
-    constructor(id,x1, y1, x2, y2) {
+    constructor(id, x1, y1, x2, y2) {
         this.id = id
         this.x1 = x1
         this.x2 = x2
