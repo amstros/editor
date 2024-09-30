@@ -100,6 +100,13 @@ class Screen {
             clicked = false
             let element = new Element(generate_id(10), start[0], start[1], stop[0], stop[1])
             this.content.push(element)
+            this.content.sort(((a,b) =>{
+                let size1 = a.height() * a.width()
+                let size2 = b.height() * b.width()
+
+               return (size1 - size2)
+
+            }))
             this.selection_mode()
         })
     }
@@ -116,26 +123,15 @@ class Screen {
             let mouse = get_mouse_pos(this.canvas, event)
             this.draw_content()
 
-            let found = undefined
+            let found = false
             this.content.forEach(element => {
-                if (found == undefined) {
-                    if (element.is_at(mouse.x, mouse.y) && (hovered == element || hovered == undefined)) {
-                        found = element
-                        hovered = element
-                        element.draw_hovered(this.canvas)
-                    }
+                if (element.is_at(mouse.x,mouse.y) && !found){
+                    element.draw_hovered(this.canvas)
+                    hovered = element
+                    found = true
                 }
-
-                if (selected && clicked) {
-                    document.getElementById('infos').innerHTML = (mouse.x - clicked.x) + " ; " + (mouse.y - clicked.y)
-                    selected.x1 += mouse.x - clicked.x
-                    selected.x2 += mouse.x - clicked.x
-                    selected.y1 += mouse.y - clicked.y
-                    selected.y2 += mouse.y - clicked.y
-                    clicked = mouse
-                }
-
-                if (selected) {
+                
+                if(selected != undefined){
                     selected.draw_selected(this.canvas)
                 }
             })
@@ -170,11 +166,23 @@ class Screen {
 
 class Element {
     constructor(id, x1, y1, x2, y2) {
+
         this.id = id
-        this.x1 = x1
-        this.x2 = x2
-        this.y1 = y1
-        this.y2 = y2
+        if (x1 < x2) {
+            this.x1 = x1
+            this.x2 = x2
+        } else {
+            this.x1 = x2
+            this.x2 = x1
+        }
+
+        if (y1 < y2){
+            this.y1 = y1
+            this.y2 = y2
+        } else {
+            this.y1 = y1
+            this.y2 = y2
+        }
 
     }
 
