@@ -100,11 +100,11 @@ class Screen {
             clicked = false
             let element = new Element(generate_id(10), start[0], start[1], stop[0], stop[1])
             this.content.push(element)
-            this.content.sort(((a,b) =>{
+            this.content.sort(((a, b) => {
                 let size1 = a.height() * a.width()
                 let size2 = b.height() * b.width()
 
-               return (size1 - size2)
+                return (size1 - size2)
 
             }))
             this.selection_mode()
@@ -115,9 +115,7 @@ class Screen {
         this.reset_canvas()
         this.draw_content()
 
-        let clicked = undefined
         let hovered = undefined
-        let selected = undefined
 
         this.canvas.addEventListener("mousemove", (event) => {
             let mouse = get_mouse_pos(this.canvas, event)
@@ -125,41 +123,26 @@ class Screen {
 
             let found = false
             this.content.forEach(element => {
-                if (element.is_at(mouse.x,mouse.y) && !found){
+                if (element.is_at(mouse.x, mouse.y) && !found) {
                     element.draw_hovered(this.canvas)
                     hovered = element
                     found = true
                 }
-                
-                if(selected != undefined){
-                    selected.draw_selected(this.canvas)
-                }
             })
-
-            if (!found) {
-                hovered = undefined
-            }
-
         })
 
         this.canvas.addEventListener("mousedown", (event) => {
-            this.draw_content()
-            clicked = get_mouse_pos(this.canvas, event)
             if (hovered != undefined) {
-                selected = hovered
-                selected.draw_selected(this.canvas)
-
-            } else {
-                selected = undefined
+                this.edit_mode(hovered)
             }
-
-
-
         })
 
-        this.canvas.addEventListener("mouseup", (event) => {
-            clicked = undefined
-        })
+    }
+
+    edit_mode(element) {
+        this.reset_canvas()
+        this.draw_content()
+        element.draw_selected(this.canvas)
     }
 }
 
@@ -176,7 +159,7 @@ class Element {
             this.x2 = x1
         }
 
-        if (y1 < y2){
+        if (y1 < y2) {
             this.y1 = y1
             this.y2 = y2
         } else {
@@ -232,10 +215,31 @@ class Element {
     }
     draw_selected(canvas) {
         let ctx = canvas.getContext('2d')
+        ctx.strokeStyle = "red"
+        ctx.fillStyle = "red"
+        ctx.lineWidth = 1
+
+        // draw frame
         ctx.beginPath()
         ctx.rect(this.top(), this.left(), this.height(), this.width())
-        ctx.strokeStyle = "red"
-        ctx.lineWidth = 1
         ctx.stroke()
+        // draw top left corner
+        ctx.beginPath()
+        ctx.arc(this.x1, this.y1, 5, 0, 2 * Math.PI)
+        ctx.fill()
+        // draw top right corner
+        ctx.beginPath()
+        ctx.arc(this.x1, this.y2, 5, 0, 2 * Math.PI)
+        ctx.fill()
+        // draw bottom right corner
+        ctx.beginPath()
+        ctx.arc(this.x2, this.y1, 5, 0, 2 * Math.PI)
+        ctx.fill()
+        // draw bottom left corner
+        ctx.beginPath()
+        ctx.arc(this.x2, this.y2, 5, 0, 2 * Math.PI)
+        ctx.fill()
+
+
     }
 }
