@@ -22,6 +22,12 @@ function generate_id(length) {
     return result;
 }
 
+function distance(x1, y1, x2, y2) {
+    let a = x2 - x1
+    let b = y2 - y1
+    return Math.sqrt(a * a + b * b)
+}
+
 class Screen {
     constructor(id) {
         this.width = 500
@@ -73,6 +79,16 @@ class Screen {
 
     }
 
+    sort_content() {
+        this.content.sort(((a, b) => {
+            let size1 = a.height() * a.width()
+            let size2 = b.height() * b.width()
+
+            return (size1 - size2)
+
+        }))
+    }
+
     add_element_mode() {
         this.reset_canvas()
         this.draw_content()
@@ -100,13 +116,8 @@ class Screen {
             clicked = false
             let element = new Element(generate_id(10), start[0], start[1], stop[0], stop[1])
             this.content.push(element)
-            this.content.sort(((a, b) => {
-                let size1 = a.height() * a.width()
-                let size2 = b.height() * b.width()
 
-                return (size1 - size2)
-
-            }))
+            this.sort_content()
             this.selection_mode()
         })
     }
@@ -143,6 +154,63 @@ class Screen {
         this.reset_canvas()
         this.draw_content()
         element.draw_selected(this.canvas)
+
+        let item = undefined
+        let click = undefined
+
+        this.canvas.addEventListener("mousemove", (event) => {
+            let mouse = get_mouse_pos(this.canvas, event)
+            if (click) {
+                switch (item) {
+                    case 0:
+                        element.drag_top_left(mouse)
+                        break;
+                    case 1:
+                        element.drag_top_right(mouse)
+                        break;
+                    case 2:
+                        element.drag_bottom_left(mouse)
+                        break;
+                    case 3:
+                        element.drag_bottom_right(mouse)
+                        break;
+                    case 4:
+                        element.drag_frame(mouse,click)
+                        click = mouse
+                        break;
+                    case 5: break;
+                    default:
+                        break;
+                }
+                this.draw_content()
+                element.draw_selected(this.canvas)
+
+            }
+        })
+
+        this.canvas.addEventListener("mousedown", (event) => {
+            let mouse = get_mouse_pos(this.canvas, event)
+            click = mouse
+            if (distance(mouse.x, mouse.y, element.x1, element.y1) <= 6) {
+                item = 0
+            } else if (distance(mouse.x, mouse.y, element.x2, element.y1) <= 6) {
+                item = 1
+            } else if (distance(mouse.x, mouse.y, element.x1, element.y2) <= 6) {
+                item = 2
+            } else if (distance(mouse.x, mouse.y, element.x2, element.y2) <= 6) {
+                item = 3
+            } else if (element.is_at(mouse.x, mouse.y)) {
+                item = 4
+            } else {
+                item = undefined
+                this.selection_mode()
+            }
+        })
+
+        this.canvas.addEventListener("mouseup", (event) => {
+            click = undefined
+            this.sort_content()
+        })
     }
 }
 
@@ -197,6 +265,67 @@ class Element {
         return width
     }
 
+    drag_frame(mouse, origin) {
+        this.x1 += (mouse.x - origin.x)
+        this.x2 += (mouse.x - origin.x)
+        this.y2 += (mouse.y - origin.y)
+        this.y1 += (mouse.y - origin.y)
+    }
+
+    drag_top_left(mouse) {
+        if (mouse.x + 15 < this.x2) {
+            this.x1 = mouse.x
+        } else {
+            this.x1 = this.x2 - 15
+        }
+
+        if (mouse.y + 15 < this.y2) {
+            this.y1 = mouse.y
+        } else {
+            this.y1 = this.y2 - 15
+        }
+    }
+
+    drag_top_right(mouse) {
+        if (mouse.x - 15 > this.x1) {
+            this.x2 = mouse.x
+        } else {
+            this.x2 = this.x1 + 15
+        }
+        if (mouse.y + 15 < this.y2) {
+            this.y1 = mouse.y
+
+        } else {
+            this.y1 = this.y2 - 15
+        }
+    }
+
+    drag_bottom_left(mouse) {
+        if (mouse.x + 15 < this.x2) {
+            this.x1 = mouse.x
+        } else {
+            this.x1 = this.x2 - 15
+        }
+        if (mouse.y - 15 > this.y1) {
+            this.y2 = mouse.y
+        } else {
+            this.y2 = this.y1 + 15
+        }
+    }
+
+    drag_bottom_right(mouse) {
+        if (mouse.x - 15 > this.x1) {
+            this.x2 = mouse.x
+        } else {
+            this.x2 = this.x1 + 15
+        }
+        if (mouse.y - 15 > this.y1) {
+            this.y2 = mouse.y
+        } else {
+            this.y2 = this.y1 + 15
+        }
+    }
+
     draw(canvas) {
         let ctx = canvas.getContext('2d')
         ctx.beginPath()
@@ -216,7 +345,7 @@ class Element {
     draw_selected(canvas) {
         let ctx = canvas.getContext('2d')
         ctx.strokeStyle = "red"
-        ctx.fillStyle = "red"
+        ctx.fillStyle = "white"
         ctx.lineWidth = 1
 
         // draw frame
@@ -225,20 +354,24 @@ class Element {
         ctx.stroke()
         // draw top left corner
         ctx.beginPath()
-        ctx.arc(this.x1, this.y1, 5, 0, 2 * Math.PI)
+        ctx.arc(this.x1, this.y1, 6, 0, 2 * Math.PI)
         ctx.fill()
+        ctx.stroke()
         // draw top right corner
         ctx.beginPath()
-        ctx.arc(this.x1, this.y2, 5, 0, 2 * Math.PI)
+        ctx.arc(this.x1, this.y2, 6, 0, 2 * Math.PI)
         ctx.fill()
+        ctx.stroke()
         // draw bottom right corner
         ctx.beginPath()
-        ctx.arc(this.x2, this.y1, 5, 0, 2 * Math.PI)
+        ctx.arc(this.x2, this.y1, 6, 0, 2 * Math.PI)
         ctx.fill()
+        ctx.stroke()
         // draw bottom left corner
         ctx.beginPath()
-        ctx.arc(this.x2, this.y2, 5, 0, 2 * Math.PI)
+        ctx.arc(this.x2, this.y2, 6, 0, 2 * Math.PI)
         ctx.fill()
+        ctx.stroke()
 
 
     }
