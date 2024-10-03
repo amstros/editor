@@ -34,9 +34,7 @@ class Screen {
         this.height = 800
         this.container = document.getElementById(id)
         this.canvas = this.new_canvas()
-
         this.content = []
-
         this.container.appendChild(this.canvas)
     }
 
