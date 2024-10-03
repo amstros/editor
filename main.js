@@ -173,7 +173,19 @@ class Screen {
                         element.drag_bottom_right(mouse)
                         break;
                     case 4:
-                        element.drag_frame(mouse,click)
+                        element.drag_top(mouse)
+                        break;
+                    case 5:
+                        element.drag_right(mouse)
+                        break;
+                    case 6:
+                        element.drag_bottom(mouse)
+                        break;
+                    case 7:
+                        element.drag_left(mouse)
+                        break;
+                    case 8:
+                        element.drag_frame(mouse, click)
                         click = mouse
                         break;
                     case 5: break;
@@ -197,8 +209,16 @@ class Screen {
                 item = 2
             } else if (distance(mouse.x, mouse.y, element.x2, element.y2) <= 6) {
                 item = 3
-            } else if (element.is_at(mouse.x, mouse.y)) {
+            } else if (Math.abs(mouse.y - element.y1) <= 6) {
                 item = 4
+            } else if (Math.abs(mouse.x - element.x2) <= 6) {
+                item = 5
+            } else if (Math.abs(mouse.y - element.y2) <= 6) {
+                item = 6
+            } else if (Math.abs(mouse.x - element.x1) <= 6) {
+                item = 7
+            } else if (element.is_at(mouse.x, mouse.y)) {
+                item = 8
             } else {
                 item = undefined
                 this.selection_mode()
@@ -261,6 +281,38 @@ class Element {
         let width
         (this.y1 < this.y2) ? width = this.y2 - this.y1 : width = this.y1 - this.y2
         return width
+    }
+
+    drag_top(mouse) {
+        if (mouse.y + 15 < this.y2) {
+            this.y1 = mouse.y
+        } else {
+            this.y1 = this.y2 - 15
+        }
+    }
+
+    drag_right(mouse) {
+        if (mouse.x - 15 > this.x1) {
+            this.x2 = mouse.x
+        } else {
+            this.x2 = this.x1 + 15
+        }
+    }
+
+    drag_bottom(mouse) {
+        if (mouse.y - 15 > this.y1) {
+            this.y2 = mouse.y
+        } else {
+            this.y2 = this.y1 + 15
+        }
+    }
+
+    drag_left(mouse) {
+        if (mouse.x + 15 < this.x2) {
+            this.x1 = mouse.x
+        } else {
+            this.x1 = this.x2 - 15
+        }
     }
 
     drag_frame(mouse, origin) {
