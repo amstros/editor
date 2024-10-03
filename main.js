@@ -132,7 +132,7 @@ class Screen {
 
             let found = false
             this.content.forEach(element => {
-                if (element.is_at(mouse.x, mouse.y) && !found) {
+                if (element.is_frame_at(mouse.x, mouse.y) && !found) {
                     element.draw_hovered(this.canvas)
                     hovered = element
                     found = true
@@ -143,6 +143,20 @@ class Screen {
         this.canvas.addEventListener("mousedown", (event) => {
             if (hovered != undefined) {
                 this.edit_mode(hovered)
+            } else {
+                let found = false
+                let mouse = get_mouse_pos(this.canvas, event)
+
+                this.content.forEach(element => {
+                    if (element.is_frame_at(mouse.x, mouse.y) && !found) {
+                        element.draw_hovered(this.canvas)
+                        hovered = element
+                        found = true
+                    }
+                    if (found){
+                        this.edit_mode(hovered)
+                    }
+                })
             }
         })
 
@@ -153,80 +167,80 @@ class Screen {
         this.draw_content()
         element.draw_selected(this.canvas)
 
-        let item = undefined
+        var item = null
         let click = undefined
 
         this.canvas.addEventListener("mousemove", (event) => {
             let mouse = get_mouse_pos(this.canvas, event)
-            if (click) {
-                switch (item) {
-                    case 0:
-                        element.drag_top_left(mouse)
-                        break;
-                    case 1:
-                        element.drag_top_right(mouse)
-                        break;
-                    case 2:
-                        element.drag_bottom_left(mouse)
-                        break;
-                    case 3:
-                        element.drag_bottom_right(mouse)
-                        break;
-                    case 4:
-                        element.drag_top(mouse)
-                        break;
-                    case 5:
-                        element.drag_right(mouse)
-                        break;
-                    case 6:
-                        element.drag_bottom(mouse)
-                        break;
-                    case 7:
-                        element.drag_left(mouse)
-                        break;
-                    case 8:
-                        element.drag_frame(mouse, click)
-                        click = mouse
-                        break;
-                    case 5: break;
-                    default:
-                        break;
-                }
-                this.draw_content()
-                element.draw_selected(this.canvas)
+            let cursor = "auto"
 
+            if (!click) {
+                if (element.is_top_left_corner_at(mouse.x, mouse.y)) {
+                    cursor = "nwse-resize"
+                    item = (x) => { element.drag_top_left(x) }
+
+                } else if (element.is_top_right_corner_at(mouse.x, mouse.y)) {
+                    cursor = "nesw-resize"
+                    item = (x) => element.drag_top_right(x)
+
+                } else if (element.is_bottom_right_corner_at(mouse.x, mouse.y)) {
+                    cursor = "nwse-resize"
+                    item = (x) => element.drag_bottom_right(x)
+
+                } else if (element.is_bottom_left_corner_at(mouse.x, mouse.y)) {
+                    cursor = "nesw-resize"
+                    item = (x) => element.drag_bottom_left(x)
+
+                } else if (element.is_top_edge_at(mouse.x, mouse.y)) {
+                    cursor = "ns-resize"
+                    item = (x) => element.drag_top(x)
+
+                } else if (element.is_right_edge_at(mouse.x, mouse.y)) {
+                    cursor = "ew-resize"
+                    item = (x) => element.drag_right(x)
+
+                } else if (element.is_bottom_edge_at(mouse.x, mouse.y)) {
+                    cursor = "ns-resize"
+                    item = (x) => element.drag_bottom(x)
+
+                } else if (element.is_left_edge_at(mouse.x, mouse.y)) {
+                    cursor = "ew-resize"
+                    item = (x) => element.drag_left(x)
+
+                } else if (element.is_frame_at(mouse.x, mouse.y)) {
+                    cursor = "move"
+                    item = (x, y) => element.drag_frame(x, y)
+                } else {
+                    item = false
+                }
             }
+
+            if (click && item) {
+                item(mouse, click)
+                click = mouse
+            }
+            if (click && !item) {
+                this.selection_mode()
+            }
+
+            this.canvas.style.cursor = cursor
+            this.draw_content()
+            element.draw_selected(this.canvas)
         })
 
         this.canvas.addEventListener("mousedown", (event) => {
             let mouse = get_mouse_pos(this.canvas, event)
             click = mouse
-            if (distance(mouse.x, mouse.y, element.x1, element.y1) <= 6) {
-                item = 0
-            } else if (distance(mouse.x, mouse.y, element.x2, element.y1) <= 6) {
-                item = 1
-            } else if (distance(mouse.x, mouse.y, element.x1, element.y2) <= 6) {
-                item = 2
-            } else if (distance(mouse.x, mouse.y, element.x2, element.y2) <= 6) {
-                item = 3
-            } else if (Math.abs(mouse.y - element.y1) <= 6) {
-                item = 4
-            } else if (Math.abs(mouse.x - element.x2) <= 6) {
-                item = 5
-            } else if (Math.abs(mouse.y - element.y2) <= 6) {
-                item = 6
-            } else if (Math.abs(mouse.x - element.x1) <= 6) {
-                item = 7
-            } else if (element.is_at(mouse.x, mouse.y)) {
-                item = 8
-            } else {
-                item = undefined
+            if (!item) {
                 this.selection_mode()
             }
+
         })
 
         this.canvas.addEventListener("mouseup", (event) => {
-            click = undefined
+            click = false
+
+
             this.sort_content()
         })
     }
@@ -255,13 +269,40 @@ class Element {
 
     }
 
-    is_at(x, y) {
+
+    is_frame_at(x, y) {
         let res = true
         res = res && (x > this.top() && x < this.top() + this.height())
         res = res && (y > this.left() && y < this.left() + this.width())
         return res
     }
 
+    is_top_edge_at(x, y) {
+        return (Math.abs(this.y1 - y) <= 6 && this.x1 < x && this.x2 > x)
+    }
+    is_right_edge_at(x, y) {
+        return (Math.abs(this.x2 - x) <= 6 && this.y1 < y && this.y2 > y)
+    }
+    is_bottom_edge_at(x, y) {
+        return (Math.abs(this.y2 - y) <= 6 && this.x1 < x && this.x2 > x)
+    }
+    is_left_edge_at(x, y) {
+        return (Math.abs(this.x1 - x) <= 6 && this.y1 < y && this.y2 > y)
+    }
+    is_top_left_corner_at(x, y) {
+        return (distance(x, y, this.x1, this.y1) <= 6)
+    }
+    is_top_right_corner_at(x, y) {
+        return (distance(x, y, this.x2, this.y1) <= 6)
+    }
+    is_bottom_left_corner_at(x, y) {
+        return (distance(x, y, this.x1, this.y2) <= 6)
+    } this
+    is_bottom_right_corner_at(x, y) {
+        return (distance(x, y, this.x2, this.y2) <= 6)
+    }
+
+    // get coordinates
     top() {
         let top
         (this.x1 < this.x2) ? top = this.x1 : top = this.x2
@@ -283,6 +324,7 @@ class Element {
         return width
     }
 
+    // draging functions
     drag_top(mouse) {
         if (mouse.y + 15 < this.y2) {
             this.y1 = mouse.y
@@ -290,7 +332,6 @@ class Element {
             this.y1 = this.y2 - 15
         }
     }
-
     drag_right(mouse) {
         if (mouse.x - 15 > this.x1) {
             this.x2 = mouse.x
@@ -298,7 +339,6 @@ class Element {
             this.x2 = this.x1 + 15
         }
     }
-
     drag_bottom(mouse) {
         if (mouse.y - 15 > this.y1) {
             this.y2 = mouse.y
@@ -306,7 +346,6 @@ class Element {
             this.y2 = this.y1 + 15
         }
     }
-
     drag_left(mouse) {
         if (mouse.x + 15 < this.x2) {
             this.x1 = mouse.x
@@ -314,28 +353,24 @@ class Element {
             this.x1 = this.x2 - 15
         }
     }
-
     drag_frame(mouse, origin) {
         this.x1 += (mouse.x - origin.x)
         this.x2 += (mouse.x - origin.x)
         this.y2 += (mouse.y - origin.y)
         this.y1 += (mouse.y - origin.y)
     }
-
     drag_top_left(mouse) {
         if (mouse.x + 15 < this.x2) {
             this.x1 = mouse.x
         } else {
             this.x1 = this.x2 - 15
         }
-
         if (mouse.y + 15 < this.y2) {
             this.y1 = mouse.y
         } else {
             this.y1 = this.y2 - 15
         }
     }
-
     drag_top_right(mouse) {
         if (mouse.x - 15 > this.x1) {
             this.x2 = mouse.x
@@ -349,7 +384,6 @@ class Element {
             this.y1 = this.y2 - 15
         }
     }
-
     drag_bottom_left(mouse) {
         if (mouse.x + 15 < this.x2) {
             this.x1 = mouse.x
@@ -362,7 +396,6 @@ class Element {
             this.y2 = this.y1 + 15
         }
     }
-
     drag_bottom_right(mouse) {
         if (mouse.x - 15 > this.x1) {
             this.x2 = mouse.x
