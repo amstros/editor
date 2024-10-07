@@ -28,41 +28,6 @@ function distance(x1, y1, x2, y2) {
     return Math.sqrt(a * a + b * b)
 }
 
-
-function check_interaction(element, mouse) {
-    let item = false
-    let cursor = "auto"
-    if (element.is_top_left_corner_at(mouse.x, mouse.y)) {
-        cursor = "nwse-resize"
-        item = (x) => { element.drag_top_left(x) }
-    } else if (element.is_top_right_corner_at(mouse.x, mouse.y)) {
-        cursor = "nesw-resize"
-        item = (x) => element.drag_top_right(x)
-    } else if (element.is_bottom_right_corner_at(mouse.x, mouse.y)) {
-        cursor = "nwse-resize"
-        item = (x) => element.drag_bottom_right(x)
-    } else if (element.is_bottom_left_corner_at(mouse.x, mouse.y)) {
-        cursor = "nesw-resize"
-        item = (x) => element.drag_bottom_left(x)
-    } else if (element.is_top_edge_at(mouse.x, mouse.y)) {
-        cursor = "ns-resize"
-        item = (x) => element.drag_top(x)
-    } else if (element.is_right_edge_at(mouse.x, mouse.y)) {
-        cursor = "ew-resize"
-        item = (x) => element.drag_right(x)
-    } else if (element.is_bottom_edge_at(mouse.x, mouse.y)) {
-        cursor = "ns-resize"
-        item = (x) => element.drag_bottom(x)
-    } else if (element.is_left_edge_at(mouse.x, mouse.y)) {
-        cursor = "ew-resize"
-        item = (x) => element.drag_left(x)
-    } else if (element.is_frame_at(mouse.x, mouse.y)) {
-        cursor = "move"
-        item = (x, y) => element.drag_frame(x, y)
-    }
-    return [item, cursor]
-}
-
 class Screen {
     constructor(id) {
         this.width = 500
@@ -200,53 +165,49 @@ class Screen {
     edit_mode(element) {
         this.reset_canvas()
         this.draw_content()
-        element.draw_selected(this.canvas)
 
-        var action_on_element = null
-        let click = undefined
+        element.draw_selected(this.canvas)
         {
-            let mouse = get_mouse_pos(this.canvas, event)
-            let interaction = check_interaction(element, mouse)
-            action_on_element = interaction[0]
-            this.canvas.style.cursor = interaction[1]
+            let mouse = get_mouse_pos(this.canvas,event)
+            element.get_interaction(mouse, this.canvas)
         }
+
+
+        var click_origin = undefined
+        var action = undefined
 
         this.canvas.addEventListener("mousemove", (event) => {
             let mouse = get_mouse_pos(this.canvas, event)
-
-            if (!click) {
-                let interaction = check_interaction(element, mouse)
-                action_on_element = interaction[0]
-                this.canvas.style.cursor = interaction[1]
+            //dragging
+            if (action != undefined) {
+                action(mouse, click_origin)
+                click_origin = mouse
+                this.draw_content()
+                element.draw_selected(this.canvas)
+            }
+            //hover
+            else {
+                element.get_interaction(mouse, this.canvas)
             }
 
-            if (click && action_on_element) {
-                action_on_element(mouse, click)
-                click = mouse
-            }
-            if (click && !action_on_element) {
-                this.selection_mode()
-            }
 
-            this.draw_content()
-            element.draw_selected(this.canvas)
+
         })
 
         this.canvas.addEventListener("mousedown", (event) => {
-            let mouse = get_mouse_pos(this.canvas, event)
-            let interaction = check_interaction(element, mouse)
-            action_on_element = interaction[0]
-            this.canvas.style.cursor = interaction[1]
-            click = mouse
-            if (!action_on_element) {
+            //click
+            click_origin = get_mouse_pos(this.canvas, event)
+            action = element.get_interaction(click_origin, this.canvas)
+
+            if (action == undefined) {
                 this.selection_mode()
             }
-
 
         })
 
         this.canvas.addEventListener("mouseup", (event) => {
-            click = false
+            click_origin = undefined
+            action = undefined
             this.sort_content()
         })
     }
@@ -331,6 +292,40 @@ class Element {
     }
 
     // draging functions
+    get_interaction(origin, canvas) {
+        let action = undefined
+        let cursor = "auto"
+        if (this.is_top_left_corner_at(origin.x, origin.y)) {
+            cursor = "nwse-resize"
+            action = (x) => { this.drag_top_left(x) }
+        } else if (this.is_top_right_corner_at(origin.x, origin.y)) {
+            cursor = "nesw-resize"
+            action = (x) => this.drag_top_right(x)
+        } else if (this.is_bottom_right_corner_at(origin.x, origin.y)) {
+            cursor = "nwse-resize"
+            action = (x) => this.drag_bottom_right(x)
+        } else if (this.is_bottom_left_corner_at(origin.x, origin.y)) {
+            cursor = "nesw-resize"
+            action = (x) => this.drag_bottom_left(x)
+        } else if (this.is_top_edge_at(origin.x, origin.y)) {
+            cursor = "ns-resize"
+            action = (x) => this.drag_top(x)
+        } else if (this.is_right_edge_at(origin.x, origin.y)) {
+            cursor = "ew-resize"
+            action = (x) => this.drag_right(x)
+        } else if (this.is_bottom_edge_at(origin.x, origin.y)) {
+            cursor = "ns-resize"
+            action = (x) => this.drag_bottom(x)
+        } else if (this.is_left_edge_at(origin.x, origin.y)) {
+            cursor = "ew-resize"
+            action = (x) => this.drag_left(x)
+        } else if (this.is_frame_at(origin.x, origin.y)) {
+            cursor = "move"
+            action = (x, y) => this.drag_frame(x, y)
+        }
+        canvas.style.cursor = cursor
+        return action
+    }
     drag_top(mouse) {
         if (mouse.y + 15 < this.y2) {
             this.y1 = mouse.y
