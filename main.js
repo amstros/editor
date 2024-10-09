@@ -28,6 +28,38 @@ function distance(x1, y1, x2, y2) {
     return Math.sqrt(a * a + b * b)
 }
 
+function try_resize_clipping(element, list) {
+    list.forEach(item => {
+        if (item != element) {
+            if (Math.abs(item.x1 - element.x1) < 5)
+                element.x1 = item.x1
+            if (Math.abs(item.x1 - element.x2) < 5)
+                element.x2 = item.x1
+            if (Math.abs(item.x2 - element.x1) < 5)
+                element.x1 = item.x2
+            if (Math.abs(item.x2 - element.x2) < 5)
+                element.x2 = item.x2
+
+            if (Math.abs(item.y1 - element.y1) < 5)
+                element.y1 = item.y1
+            if (Math.abs(item.y1 - element.y2) < 5)
+                element.y2 = item.y1
+            if (Math.abs(item.y2 - element.y1) < 5)
+                element.y1 = item.y2
+            if (Math.abs(item.y2 - element.y2) < 5)
+                element.y2 = item.y2
+        }
+    })
+}
+
+function try_drag_clipping(element, mouse, list) {
+    list.forEach(item => {
+        if (element != item) {
+
+        }
+    })
+}
+
 class Screen {
     constructor(id) {
         this.width = 500
@@ -168,7 +200,7 @@ class Screen {
 
         element.draw_selected(this.canvas)
         {
-            let mouse = get_mouse_pos(this.canvas,event)
+            let mouse = get_mouse_pos(this.canvas, event)
             element.get_interaction(mouse, this.canvas)
         }
 
@@ -180,7 +212,7 @@ class Screen {
             let mouse = get_mouse_pos(this.canvas, event)
             //dragging
             if (action != undefined) {
-                action(mouse, click_origin)
+                action(mouse, this.content, click_origin)
                 click_origin = mouse
                 this.draw_content()
                 element.draw_selected(this.canvas)
@@ -292,119 +324,141 @@ class Element {
     }
 
     // draging functions
-    get_interaction(origin, canvas) {
+    get_interaction(origin, canvas, content) {
         let action = undefined
         let cursor = "auto"
         if (this.is_top_left_corner_at(origin.x, origin.y)) {
             cursor = "nwse-resize"
-            action = (x) => { this.drag_top_left(x) }
+            action = (x, y) => { this.drag_top_left(x, y) }
         } else if (this.is_top_right_corner_at(origin.x, origin.y)) {
             cursor = "nesw-resize"
-            action = (x) => this.drag_top_right(x)
+            action = (x, y) => this.drag_top_right(x, y)
         } else if (this.is_bottom_right_corner_at(origin.x, origin.y)) {
             cursor = "nwse-resize"
-            action = (x) => this.drag_bottom_right(x)
+            action = (x, y) => this.drag_bottom_right(x, y)
         } else if (this.is_bottom_left_corner_at(origin.x, origin.y)) {
             cursor = "nesw-resize"
-            action = (x) => this.drag_bottom_left(x)
+            action = (x, y) => this.drag_bottom_left(x, y)
         } else if (this.is_top_edge_at(origin.x, origin.y)) {
             cursor = "ns-resize"
-            action = (x) => this.drag_top(x)
+            action = (x, y) => this.drag_top(x, y)
         } else if (this.is_right_edge_at(origin.x, origin.y)) {
             cursor = "ew-resize"
-            action = (x) => this.drag_right(x)
+            action = (x, y) => this.drag_right(x, y)
         } else if (this.is_bottom_edge_at(origin.x, origin.y)) {
             cursor = "ns-resize"
-            action = (x) => this.drag_bottom(x)
+            action = (x, y) => this.drag_bottom(x, y)
         } else if (this.is_left_edge_at(origin.x, origin.y)) {
             cursor = "ew-resize"
-            action = (x) => this.drag_left(x)
+            action = (x, y) => this.drag_left(x, y)
         } else if (this.is_frame_at(origin.x, origin.y)) {
             cursor = "move"
-            action = (x, y) => this.drag_frame(x, y)
+            action = (x, y, z) => this.drag_frame(x, y, z)
         }
         canvas.style.cursor = cursor
         return action
     }
-    drag_top(mouse) {
+    drag_top(mouse, content) {
         if (mouse.y + 15 < this.y2) {
             this.y1 = mouse.y
+            try_resize_clipping(this, content)
         } else {
             this.y1 = this.y2 - 15
         }
     }
-    drag_right(mouse) {
+    drag_right(mouse, content) {
         if (mouse.x - 15 > this.x1) {
             this.x2 = mouse.x
+            try_resize_clipping(this, content)
+
         } else {
             this.x2 = this.x1 + 15
         }
     }
-    drag_bottom(mouse) {
+    drag_bottom(mouse, content) {
         if (mouse.y - 15 > this.y1) {
             this.y2 = mouse.y
+            try_resize_clipping(this, content)
+
         } else {
             this.y2 = this.y1 + 15
         }
     }
-    drag_left(mouse) {
+    drag_left(mouse, content) {
         if (mouse.x + 15 < this.x2) {
             this.x1 = mouse.x
+            try_resize_clipping(this, content)
+
         } else {
             this.x1 = this.x2 - 15
         }
     }
-    drag_frame(mouse, origin) {
+    drag_frame(mouse, content, origin) {
         this.x1 += (mouse.x - origin.x)
         this.x2 += (mouse.x - origin.x)
         this.y2 += (mouse.y - origin.y)
         this.y1 += (mouse.y - origin.y)
     }
-    drag_top_left(mouse) {
+    drag_top_left(mouse, content) {
         if (mouse.x + 15 < this.x2) {
             this.x1 = mouse.x
+            try_resize_clipping(this, content)
+
         } else {
             this.x1 = this.x2 - 15
         }
         if (mouse.y + 15 < this.y2) {
             this.y1 = mouse.y
-        } else {
-            this.y1 = this.y2 - 15
-        }
-    }
-    drag_top_right(mouse) {
-        if (mouse.x - 15 > this.x1) {
-            this.x2 = mouse.x
-        } else {
-            this.x2 = this.x1 + 15
-        }
-        if (mouse.y + 15 < this.y2) {
-            this.y1 = mouse.y
+            try_resize_clipping(this, content)
 
         } else {
             this.y1 = this.y2 - 15
         }
     }
-    drag_bottom_left(mouse) {
+    drag_top_right(mouse, content) {
+        if (mouse.x - 15 > this.x1) {
+            this.x2 = mouse.x
+            try_resize_clipping(this, content)
+
+        } else {
+            this.x2 = this.x1 + 15
+        }
+        if (mouse.y + 15 < this.y2) {
+            this.y1 = mouse.y
+            try_resize_clipping(this, content)
+
+        } else {
+            this.y1 = this.y2 - 15
+        }
+    }
+    drag_bottom_left(mouse, content) {
         if (mouse.x + 15 < this.x2) {
             this.x1 = mouse.x
+            try_resize_clipping(this, content)
         } else {
             this.x1 = this.x2 - 15
+
         }
         if (mouse.y - 15 > this.y1) {
             this.y2 = mouse.y
+            try_resize_clipping(this, content)
+
         } else {
             this.y2 = this.y1 + 15
         }
     }
-    drag_bottom_right(mouse) {
+    drag_bottom_right(mouse, content) {
         if (mouse.x - 15 > this.x1) {
             this.x2 = mouse.x
+            try_resize_clipping(this, content)
+
         } else {
             this.x2 = this.x1 + 15
         }
         if (mouse.y - 15 > this.y1) {
             this.y2 = mouse.y
+            try_resize_clipping(this, content)
+
         } else {
             this.y2 = this.y1 + 15
         }
